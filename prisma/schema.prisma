@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  fullName  String
+  email     String     @unique
+  password  String
+  createdAt DateTime   @default(now())
+  favorites Favorite[]
+}
+
+model TeamMember {
+  id          Int          @id @default(autoincrement())
+  fullName    String
+  jobTitle    String
+  status      MemberStatus @default(ACTIVE)
+  avatarUrl   String?
+  createdAt   DateTime     @default(now())
+  favoritedBy Favorite[]
+}
+
+model Favorite {
+  userId       Int
+  teamMemberId Int
+  createdAt    DateTime   @default(now())
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamMember   TeamMember @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+
+  @@id([userId, teamMemberId])
+}
