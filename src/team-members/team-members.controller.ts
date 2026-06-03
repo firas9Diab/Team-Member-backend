@@ -66,6 +66,23 @@ export class TeamMembersController {
     return this.teamMembersService.findAll(user.id, query);
   }
 
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a team member by ID' })
+  @ApiParam({ name: 'id', description: 'Team member ID', example: 1 })
+  @ApiResponse({
+    status: 200,
+    description: 'Team member found',
+    schema: { example: teamMemberExample },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Team member not found' })
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser() user: AuthUser,
+  ) {
+    return this.teamMembersService.findOne(id, user.id);
+  }
+
   @Post()
   @ApiOperation({ summary: 'Add a team member' })
   @ApiBody({

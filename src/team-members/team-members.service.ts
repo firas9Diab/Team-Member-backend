@@ -45,6 +45,25 @@ export class TeamMembersService {
     };
   }
 
+  async findOne(id: number, userId: number) {
+    const member = await this.prisma.teamMember.findUnique({
+      where: { id },
+      include: {
+        favoritedBy: {
+          where: { userId },
+          select: { userId: true },
+        },
+      },
+    });
+
+    if (!member) {
+      throw new NotFoundException(`Team member with id ${id} not found`);
+    }
+
+    const { favoritedBy, ...rest } = member;
+    return { ...rest, isFavorite: favoritedBy.length > 0 };
+  }
+
   async create(dto: CreateTeamMemberDto) {
     const member = await this.prisma.teamMember.create({
       data: {
