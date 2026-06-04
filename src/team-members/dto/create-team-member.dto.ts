@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MemberStatus } from '@prisma/client';
-import { IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class CreateTeamMemberDto {
   @ApiProperty({ example: 'Sarah Williams' })
@@ -24,6 +24,6 @@ export class CreateTeamMemberDto {
     example: 'https://example.com/avatars/sarah-williams.jpg',
   })
   @IsOptional()
-  @IsUrl({ require_protocol: true })
+  @IsString()
   avatarUrl?: string;
 }
