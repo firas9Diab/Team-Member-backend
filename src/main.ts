@@ -2,16 +2,12 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { join } from 'path';
-import * as express from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.enableCors();
-
-  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -22,8 +18,10 @@ async function bootstrap() {
   );
 
   const config = new DocumentBuilder()
-    .setTitle('TeamFlow API')
-    .setDescription('REST API for TeamFlow authentication, users, team members, and favorites')
+    .setTitle('ShopFlow API')
+    .setDescription(
+      'E-commerce REST API: auth, users, addresses, categories, products, reviews',
+    )
     .setVersion('1.0')
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },

@@ -1,17 +1,37 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { ResponseMessage } from '../common/decorators/response-message.decorator';
 import { AuthService } from './auth.service';
+import { AuthUser, GetUser } from './decorators/get-user.decorator';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 
 const authResponseExample = {
-  accessToken:
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature',
-  user: {
-    id: 1,
-    fullName: 'Alex Johnson',
-    email: 'alex@example.com',
-    createdAt: '2026-05-18T10:00:00.000Z',
+  status: true,
+  message: 'Account created successfully',
+  data: {
+    accessToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature',
+    user: {
+      id: 1,
+      fullName: 'Nandhu Santhosh',
+      email: 'nandhusanthosh@gmail.com',
+      phone: '6238973581',
+    },
   },
 };
 
@@ -21,16 +41,19 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('signup')
-  @ApiOperation({ summary: 'Create a new TeamFlow account' })
+  @ResponseMessage('Account created successfully')
+  @ApiOperation({ summary: 'Create a new account' })
   @ApiBody({
     type: SignupDto,
     examples: {
       signup: {
         summary: 'Signup body',
         value: {
-          fullName: 'Alex Johnson',
-          email: 'alex@example.com',
-          password: 'password123',
+          fullName: 'Nandhu Santhosh',
+          email: 'nandhusanthosh@gmail.com',
+          password: '12345678',
+          confirmPassword: '12345678',
+          phone: '6238973581',
         },
       },
     },
@@ -47,6 +70,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Logged in successfully')
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiBody({
     type: LoginDto,
@@ -54,8 +78,8 @@ export class AuthController {
       login: {
         summary: 'Login body',
         value: {
-          email: 'alex@example.com',
-          password: 'password123',
+          email: 'nandhusanthosh@gmail.com',
+          password: '12345678',
         },
       },
     },
@@ -63,10 +87,40 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'Login successful, returns JWT token and user data',
-    schema: { example: authResponseExample },
+    schema: {
+      example: {
+        ...authResponseExample,
+        message: 'Logged in successfully',
+      },
+    },
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Get('me')
+  @ApiBearerAuth('JWT')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get current user from token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Current authenticated user',
+    schema: {
+      example: {
+        status: true,
+        data: {
+          id: 1,
+          fullName: 'Nandhu Santhosh',
+          email: 'nandhusanthosh@gmail.com',
+          phone: '6238973581',
+          dateOfBirth: '2002-09-18T00:00:00.000Z',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  getMe(@GetUser() user: AuthUser) {
+    return this.authService.getMe(user.id);
   }
 }

@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -24,18 +25,13 @@ export class AuthService {
       throw new ConflictException('Email already in use');
     }
 
-    const hashed = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.user.create({
       data: {
         fullName: dto.fullName,
         email: dto.email,
-        password: hashed,
-      },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        createdAt: true,
+        passwordHash,
+        phone: dto.phone,
       },
     });
 
@@ -50,31 +46,48 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const valid = await bcrypt.compare(dto.password, user.password);
+    const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.buildAuthResponse({
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
-      createdAt: user.createdAt,
+    return this.buildAuthResponse(user);
+  }
+
+  async getMe(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phone: true,
+        dateOfBirth: true,
+      },
     });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
   }
 
   private buildAuthResponse(user: {
     id: number;
     fullName: string;
     email: string;
-    createdAt: Date;
+    phone: string | null;
   }) {
     return {
       accessToken: this.jwtService.sign(
         { sub: user.id, email: user.email },
         { secret: process.env.JWT_SECRET || 'secret', expiresIn: '7d' },
       ),
-      user,
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+      },
     };
   }
 }

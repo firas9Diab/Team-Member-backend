@@ -1,22 +1,24 @@
-import { Controller, Delete, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { AuthUser, GetUser } from '../auth/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ResponseMessage } from '../common/decorators/response-message.decorator';
+import { UpdateMeDto } from './dto/update-me.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UsersService } from './users.service';
 
-const favoriteTeamMemberExample = {
+const userExample = {
   id: 1,
-  fullName: 'Alex Johnson',
-  jobTitle: 'Frontend Developer',
-  status: 'ACTIVE',
-  avatarUrl: 'https://example.com/avatars/alex-johnson.jpg',
-  createdAt: '2026-05-18T10:00:00.000Z',
-  isFavorite: true,
+  fullName: 'Nandhu Santhosh',
+  email: 'nandhusanthosh@gmail.com',
+  phone: '6238973581',
+  dateOfBirth: '2002-09-18T00:00:00.000Z',
 };
 
 @ApiTags('Users')
@@ -27,61 +29,75 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get('me')
-  @ApiOperation({ summary: 'Get current user data and favorites from token' })
+  @ApiOperation({ summary: 'Get my details' })
   @ApiResponse({
     status: 200,
-    description: 'Current user profile with favorite team members',
-    schema: {
-      example: {
-        id: 1,
-        fullName: 'Alex Johnson',
-        email: 'alex@example.com',
-        createdAt: '2026-05-18T10:00:00.000Z',
-        favorites: [favoriteTeamMemberExample],
-      },
-    },
+    description: 'Current user details',
+    schema: { example: { status: true, data: userExample } },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   getMe(@GetUser() user: AuthUser) {
     return this.usersService.getMe(user.id);
   }
 
-  @Post('me/favorites/:teamMemberId')
-  @ApiOperation({ summary: 'Add a team member to current user favorites' })
+  @Patch('me')
+  @ResponseMessage('Details updated successfully')
+  @ApiOperation({ summary: 'Update my details (email cannot be changed in v1)' })
+  @ApiBody({
+    type: UpdateMeDto,
+    examples: {
+      updateMe: {
+        summary: 'Update details body',
+        value: {
+          fullName: 'Nandhu Santhosh',
+          phone: '6238973581',
+          dateOfBirth: '2002-09-18',
+        },
+      },
+    },
+  })
   @ApiResponse({
-    status: 201,
-    description: 'Team member added to favorites',
+    status: 200,
+    description: 'Details updated',
     schema: {
       example: {
-        message: 'Team member added to favorites',
-        teamMember: favoriteTeamMemberExample,
+        status: true,
+        message: 'Details updated successfully',
+        data: userExample,
       },
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Team member not found' })
-  addFavorite(
-    @GetUser() user: AuthUser,
-    @Param('teamMemberId', ParseIntPipe) teamMemberId: number,
-  ) {
-    return this.usersService.addFavorite(user.id, teamMemberId);
+  updateMe(@GetUser() user: AuthUser, @Body() dto: UpdateMeDto) {
+    return this.usersService.updateMe(user.id, dto);
   }
 
-  @Delete('me/favorites/:teamMemberId')
-  @ApiOperation({ summary: 'Remove a team member from current user favorites' })
-  @ApiResponse({
-    status: 200,
-    description: 'Team member removed from favorites',
-    schema: {
-      example: { message: 'Team member removed from favorites' },
+  @Patch('me/password')
+  @ResponseMessage('Password updated successfully')
+  @ApiOperation({ summary: 'Update my password' })
+  @ApiBody({
+    type: UpdatePasswordDto,
+    examples: {
+      updatePassword: {
+        summary: 'Update password body',
+        value: {
+          oldPassword: '12345678',
+          newPassword: '87654321',
+          confirmNewPassword: '87654321',
+        },
+      },
     },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Team member or favorite not found' })
-  removeFavorite(
-    @GetUser() user: AuthUser,
-    @Param('teamMemberId', ParseIntPipe) teamMemberId: number,
-  ) {
-    return this.usersService.removeFavorite(user.id, teamMemberId);
+  @ApiResponse({
+    status: 200,
+    description: 'Password updated',
+    schema: {
+      example: { status: true, message: 'Password updated successfully' },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized or wrong old password' })
+  updatePassword(@GetUser() user: AuthUser, @Body() dto: UpdatePasswordDto) {
+    return this.usersService.updatePassword(user.id, dto);
   }
 }
